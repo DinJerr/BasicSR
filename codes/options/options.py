@@ -1,7 +1,7 @@
 import os
 import os.path as osp
 import logging
-import cv2
+import re
 
 
 def parse(opt_path, is_train=True):
@@ -21,8 +21,20 @@ def parse(opt_path, is_train=True):
             opt = cson.load(f)
     elif extension == '.yml' or extension == '.yaml':
         import yaml
+        loader = yaml.SafeLoader
+        # fix parsing of floats
+        loader.add_implicit_resolver(
+            u'tag:yaml.org,2002:float',
+            re.compile(u'''^(?:
+             [-+]?(?:[0-9][0-9_]*)\\.[0-9_]*(?:[eE][-+]?[0-9]+)?
+            |[-+]?(?:[0-9][0-9_]*)(?:[eE][-+]?[0-9]+)
+            |\\.[0-9_]+(?:[eE][-+]?[0-9]+)?
+            |[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+\\.[0-9_]*
+            |[-+]?\\.(?:inf|Inf|INF)
+            |\\.(?:nan|NaN|NAN))$''', re.X),
+            list(u'-+0123456789.'))
         with open(opt_path, 'r') as f:
-            opt = yaml.safe_load(f)
+            opt = yaml.load(f, Loader=loader)
     else:
         raise ValueError('Unknown file extension: {}'.format(extension))
 

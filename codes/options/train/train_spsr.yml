@@ -1,15 +1,15 @@
-name: '4x_template'
+name: '4x_SPSR'
 use_tb_logger: true
-model: 'srragan' # srragan | sr | srgan
+model: 'spsr'
 scale: 4
 batch_multiplier: 1
 gpu_ids: [0]
-use_amp: false # set to true if you have a Volta/Turing GPU or better.
+# AMP is currently unsupported
 
 #Dataset options:
 datasets:
   train:
-    name: 'DIV2K'
+    name: 'dataset'
     mode: 'LRHROTF'
     #dataroot_HR: '../datasets/train/hr' # Original, with a single directory
     #dataroot_LR: '../datasets/train/lr' # Original, with a single directory
@@ -26,7 +26,7 @@ datasets:
     subset_file: null
     use_shuffle: true
     n_workers: 4 # 0 to disable CPU multithreading, or an integrer representing CPU threads to use for dataloading
-    batch_size: 8
+    batch_size: 4
     HR_size: 128 # patch size. Default: 128
 
     #Color space conversion: 'color' for both LR and HR, 'color_LR' for LR independently, 'color_HR' for HR independently
@@ -38,27 +38,25 @@ datasets:
     #rand_flip_LR_HR: false # true # flip LR and HR during training.
     #flip_chance: 0.05 # Example: 0.05 = 5% chance of LR and HR flipping during training.
     #aug_downscale: 0.2 # Example: 0.6 = 60% chance of generating LR on the fly, even if LR dataset exists
-    #hr_downscale: true // randomly downscale HR as well
-    
+
     #If manually configuring on the fly generation of LR: (else, it will automatically default to Matlab-like downscale algorithm (777) when/if required
     lr_downscale: true # false
-    lr_downscale_types: ['area', 'matlab_bicubic'] # select from: ['nearest', 'linear', 'cubic', 'area', 'lanczos4', 'linear_exact', 'matlab_bicubic','im_rgb','im_liquid'] # scale_algos #scaling interpolation options
+    lr_downscale_types: ['area', 'matlab_bicubic'] # select from: ['nearest', 'linear', 'cubic', 'area', 'lanczos4', 'linear_exact', 'matlab_bicubic'] # scale_algos #scaling interpolation options
 
-    #Rotations & scaling augmentations:
+    #Rotations augmentations:
     use_flip: true # flip images
     use_rot: true # rotate images in 90 degree angles
     hr_rrot: false # rotate images in random degress between -45 and 45
-    hr_downscale: false # randomly downscale HR image before tile cropping
+
     #Noise and blur augmentations:
     lr_blur: false # true | false
     lr_blur_types:  ['gaussian', 'clean', 'clean', 'clean'] # select from: ['average', 'box', 'gaussian', 'bilateral', 'clean'] # #blur options #median and motion aren't working yet
     lr_noise: false # true | false
-    # LR noise types select from: ['imdither','imrandither','imquantize','imkuwahara','imtonephoto','imtonecomic','gaussian', 'jpeg', 'quantize', 'poisson', 'dither', 's&p', 'speckle', 'clean']
-    lr_noise_types: ['imdither', 'imrandither', 'clean', 'clean', 'clean']
+    lr_noise_types: ['gaussian', 'clean', 'clean', 'clean', 'clean'] # select from: ['gaussian', 'JPEG', 'quantize', 'poisson', 'dither', 's&p', 'speckle', 'clean']
     lr_noise2: false # true | false
-    lr_noise_types2: ['jpeg', 'clean', 'clean', 'clean'] 
+    lr_noise_types2: ['dither', 'dither', 'clean', 'clean'] # select from: ['gaussian', 'JPEG', 'quantize', 'poisson', 'dither', 's&p', 'speckle', 'clean']
     hr_noise: false # true | false
-    hr_noise_types: ['gaussian', 'clean', 'clean', 'clean', 'clean'] # select from: ['gaussian', 'jpeg', 'quantize', 'poisson', 'dither', 's&p', 'speckle', 'clean']
+    hr_noise_types: ['gaussian', 'clean', 'clean', 'clean', 'clean'] # select from: ['gaussian', 'JPEG', 'quantize', 'poisson', 'dither', 's&p', 'speckle', 'clean']
 
     #Color augmentations
     #lr_fringes: true # true | false
@@ -74,7 +72,7 @@ datasets:
     #lr_cutout: false
     #lr_erasing: false
   val:
-    name: 'val_set14_part'
+    name: 'val_dataset'
     mode: 'LRHROTF'
     dataroot_HR: '../datasets/val/hr'
     dataroot_LR: '../datasets/val/lr'
@@ -86,88 +84,53 @@ datasets:
 
     #hr_crop: false # disabled
     lr_downscale: false
-    lr_downscale_types: ['nearest', 'linear'] # ['nearest', 'linear', 'cubic', 'area', 'lanczos4', 'linear_exact', 'matlab_bicubic','im_rgb','im_liquid'] # scale_algos #scaling interpolation options
+    lr_downscale_types: ['nearest', 'area'] # ['nearest', 'linear', 'cubic', 'area', 'lanczos4', 'linear_exact', 'matlab_bicubic'] # scale_algos #scaling interpolation options
 
 path:
-  root: 'D:/Code/GitHub/BasicSR'
+  root: 'D:/Code/GitHub/BasicSR' #modify to you own root path
+  # resume_state: '../experiments/4x_SPSR/training_state/'
   pretrain_model_G: '../experiments/pretrained_models/RRDB_PSNR_x4.pth'
   #pretrain_model_G: '../experiments/pretrained_models/RRDB_ESRGAN_x4.pth'
-  #resume_state: '../experiments/4x_template/training_state/latest.state' #load from autosaves
-  #resume_state: '../experiments/4x_template/training_state/1000.state'   #load from savestate
-
-#set to true if memory error when resuming training state
-load2CPU: false
 
 #Generator options:
 network_G:
-  #ESRGAN:
-  which_model_G: 'RRDB_net' # RRDB_net | sr_resnet
+  which_model_G: 'spsr_net'
   norm_type: null
   mode: 'CNA'
-  nf: 64 # number of discrim filters in the first conv layer
+  nf: 64
   nb: 23
-  in_nc: 3 # number of input image channels: 3 for RGB and 1 for grayscale
-  out_nc: 3 # number of output image channels: 3 for RGB and 1 for grayscale
+  in_nc: 3
+  out_nc: 3
   gc: 32
   group: 1
   convtype: 'Conv2D' # 'Conv2D' | 'PartialConv2D'
-  net_act: 'leakyrelu' # 'swish' | 'leakyrelu'
-
-  #SRGAN:
-  #which_model_G: 'sr_resnet' # RRDB_net | sr_resnet
-  #norm_type: null
-  #mode: 'CNA'
-  #nf: 64
-  #nb: 16
-  #in_nc: 3
-  #out_nc: 3
+  act_type: 'leakyrelu' # 'swish' | 'leakyrelu'
 
 #Discriminator options:
 network_D:
-  #ESRGAN:
-  which_model_D: 'discriminator_vgg' # discriminator_vgg | discriminator_vgg_128
+  which_model_D: 'discriminator_vgg'
   norm_type: 'batch'
   act_type: 'leakyrelu'
-  mode: 'CNA' # 'CNA' | 'NAC'
+  mode: 'CNA'
   nf: 64
   in_nc: 3
 
 #Training options:
 train:
   #Optimizer options:
-  lr_G: 1e-4 # 2e-4 # starting lr_G #Test, default: 1e-4
-  lr_D: 1e-4 # 4e-4 # starting lr_D #Test, default: 1e-4
-
-  # ESRGAN-FS Augmentations
-  use_frequency_separation: true
-
+  lr_G: 1e-4
+  lr_D: 1e-4
+  lr_D_grad: 1e-4
+  
   #Scheduler options:
-  #For MultiStepLR (ESRGAN, default):
   lr_scheme: 'MultiStepLR'
-  lr_steps: [50000, 100000, 200000, 300000] # training from scratch
-  #lr_steps: [50000, 75000, 85000, 100000] # finetuning
-  lr_gamma: 0.5 # lr change at every step (multiplied by)
-
-  #For StepLR_Restart:
-  #lr_gamma: 0.9 # lr change at every step (multiplied by)
-  #lr_scheme: 'StepLR_Restart' # 'MultiStepLR' | MultiStepLR_Restart | 'StepLR' | 'StepLR_Restart' | CosineAnnealingLR_Restart
-  #lr_step_sizes: [200, 100, 250] # Steps for each restart for 'StepLR_Restart'
-  #restarts: [138000, 172500] # Restart iterations for 'MultiStepLR_Restart', 'StepLR_Restart' and 'CosineAnnealingLR_Restart'
-  #restart_weights: [1, 0.5, 0.5]#lr_() * each weight in 'restart_weights' for each restart in 'restarts'
-  ##clear_state: true
-
-  #For MultiStepLR_Restart:
-  #lr_gamma: 0.9
-  #lr_scheme: 'MultiStepLR_Restart' # 'MultiStepLR' | MultiStepLR_Restart | 'StepLR' | 'StepLR_Restart' | CosineAnnealingLR_Restart
-  #lr_steps: [34500, 69000, 103500, 155250, 189750, 241500] # For 'MultiStepLR' and 'MultiStepLR_Restart'
-  #restarts: [138000, 172500] # Restart iterations for 'MultiStepLR_Restart', 'StepLR_Restart' and 'CosineAnnealingLR_Restart'
-  #restart_weights: [0.5, 0.5] # lr_() * each weight in 'restart_weights' for each restart in 'restarts'
-  ##clear_state: true
+  lr_steps: [50000, 100000, 200000, 300000]
+  lr_gamma: 0.5
 
   #Losses:
-  pixel_criterion: 'l1' # 'l1' | 'l2' | 'cb' | 'elastic' | 'relativel1' | 'l1cosinesim' # pixel loss
-  pixel_weight: 1e-2 # 1e-2 | 1
-  feature_criterion: 'l1' # 'l1' | 'l2' | 'cb' | 'elastic' # feature loss (VGG feature network)
+  pixel_criterion: 'l1'
+  pixel_weight: 1e-2
+  feature_criterion: 'l1'
   feature_weight: 1
   #hfen_criterion: 'l1' # hfen: 'l1' | 'l2' | 'rel_l1' | 'rel_l2' # helps in deblurring and finding edges, lines
   #hfen_weight: 1e-1
@@ -176,11 +139,15 @@ train:
   #tv_norm: 2 # 1 for l1 (default) or 2 for l2. Change 'tv_weight' so the l_g_tv is around 1e-02
   #ssim_type: 'ms-ssim' # 'ssim' | 'ms-ssim' # helps to maintain luminance, contrast and covariance between SR and HR
   #ssim_weight: 1
-  gan_type: 'vanilla' # 'vanilla' | basic
-  gan_weight: 5e-3 # *
+  gan_type: 'vanilla'
+  gan_weight: 5e-3
   #lpips_weight: 1 # perceptual loss
   #lpips_type: 'net-lin' # net-lin | net *
   #lpips_net: 'squeeze' # 'vgg' | 'alex' | 'squeeze'
+  gradient_pixel_weight: 1e-2
+  gradient_gan_weight: 5e-3
+  pixel_branch_criterion: 'l1'
+  pixel_branch_weight: 5e-1
 
   #for wgan-gp
   #D_update_ratio: 1
@@ -188,7 +155,9 @@ train:
   #gp_weigth: 10
 
 #Other training options:
-  manual_seed: 0
+  Branch_pretrain: true
+  Branch_init_iters: 5000
+  manual_seed: 9
   niter: 5e5
   val_freq: 1000 # 5e3
 

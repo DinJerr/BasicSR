@@ -36,8 +36,8 @@ network_D:
   which_model_D: 'dis_acd'
 
 train:
-  lr_G: !!float 1e-4
-  lr_D: !!float 1e-4
+  lr_G: 1e-4
+  lr_D: 1e-4
 
   lr_scheme: 'MultiStepLR'
   lr_steps: [50000, 100000, 150000, 200000]
@@ -48,7 +48,7 @@ train:
   feature_criterion: 'l1'
   feature_weight: 1
   gan_type: 'vanilla'
-  gan_weight: !!float 5e-3
+  gan_weight: 5e-3
 
   #for wgan-gp
   # D_update_ratio: 1
@@ -56,9 +56,9 @@ train:
   # gp_weigth: 10
 
   manual_seed: 0
-  niter: !!float 6e5
-  val_freq: !!float 2e3
+  niter: 6e5
+  val_freq: 2e3
 
 logger:
   print_freq: 200
-  save_checkpoint_freq: !!float 2e3
+  save_checkpoint_freq: 2e3
